@@ -1,0 +1,15 @@
+{
+  "name": "Fluxo de Caixa - Doutor da Inform\u00e1tica",
+  "short_name": "Fluxo Caixa",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#004999",
+  "icons": [
+    {
+      "src": "https://files.cdn-files-a.com/uploads/10652556/400_filter_nobg_6802587020f4d.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

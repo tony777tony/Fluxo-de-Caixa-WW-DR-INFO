@@ -1,0 +1,388 @@
+<!--
+  Sistema desenvolvido por Doutor da Informática - Todos os direitos reservados.
+  Proibida a cópia ou distribuição sem autorização. Site oficial: www.doutordainformatica.com
+-->
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#004999"/>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log('Service worker registrado.', reg))
+          .catch(err => console.log('Erro ao registrar service worker:', err));
+      });
+    }
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fluxo de Caixa - Doutor da Informática</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif; margin: 0; padding: 20px;
+      background: #f9f9f9; color: #333;
+      transition: all 0.3s ease;
+    }
+    header {
+      background: #004999; color: white; padding: 20px; text-align: center;
+    }
+    .container {
+      max-width: 900px; margin: 20px auto;
+      background: white; padding: 20px; border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    input, select {
+      padding: 10px; margin: 8px 0; width: 100%;
+      border: 1px solid #ccc; border-radius: 4px;
+    }
+    button {
+      padding: 12px 18px; margin-top: 12px;
+      background: #0066cc; color: white;
+      border: none; border-radius: 5px; cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover { background: #004999; }
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 20px;
+    }
+    th, td {
+      padding: 12px; border: 1px solid #ddd;
+    }
+    th {
+      background: #0066cc; color: white;
+    }
+    footer {
+      margin-top: 40px; text-align: center; color: #888;
+      font-size: 14px;
+    }
+    .logo {
+      width: 250px; margin-bottom: 20px;
+      animation: brilho 2s infinite ease-in-out;
+    }
+    @keyframes brilho {
+      0% { filter: drop-shadow(0 0 8px #000); }
+      50% { filter: drop-shadow(0 0 20px #ffd700); }
+      100% { filter: drop-shadow(0 0 8px #000); }
+    }
+    .saldo {
+      font-size: 1.6em; font-weight: bold;
+      background: #e0f7fa; padding: 18px; border-radius: 8px;
+      text-align: center; margin-top: 20px;
+    }
+    .responsive-table {
+      overflow-x: auto;
+      max-width: 100%;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<div id="notificacao" style="display:none;position:fixed;top:20px;right:20px;padding:10px 20px;background:#4caf50;color:white;border-radius:5px;z-index:999;font-weight:bold;"></div>
+<body onload="checarUsuario()">
+
+<!-- Tela de Cadastro -->
+<div class="container" id="cadastroContainer">
+  <img src="https://files.cdn-files-a.com/uploads/10652556/400_filter_nobg_6802587020f4d.png" class="logo" alt="Logo Doutor da Informática"/>
+  <h2>Cadastro de Usuário</h2>
+  <input type="text" id="nomeCadastro" placeholder="Seu nome" />
+  <input type="password" id="senhaCadastro" placeholder="Crie uma senha" />
+  <button onclick="fazerCadastro()">Cadastrar</button>
+</div>
+
+<!-- Tela de Login -->
+<div class="container" id="loginContainer" style="display: none;">
+  <img src="https://files.cdn-files-a.com/uploads/10652556/400_filter_nobg_6802587020f4d.png" class="logo" alt="Logo Doutor da Informática"/>
+  <h2>Login</h2>
+  <input type="password" id="senhaLogin" placeholder="Digite sua senha" />
+  <button onclick="fazerLogin()">Entrar</button>
+  <p id="erroLogin" style="color:red; display:none;">Senha incorreta!</p>
+</div>
+
+<!-- Sistema de Fluxo de Caixa -->
+<div class="container" id="fluxoContainer" style="display: none;">
+  <header>
+    <img src="https://files.cdn-files-a.com/uploads/10652556/400_filter_nobg_6802587020f4d.png" class="logo" alt="Logo Doutor da Informática"/>
+    <h1>Fluxo de Caixa - <span id="nomeUsuario"></span></h1>
+  </header>
+
+  <div class="saldo" id="saldo">Saldo: R$ 0,00</div>
+  <div style="margin-top: 20px; text-align: center;">
+    <button onclick="salvarDados()" style="margin:5px; padding:10px;">💾 Salvar</button>
+    <button onclick="resetarDados()" style="margin:5px; padding:10px;">🧹 Resetar</button>
+    <button onclick="gerarPDF()" style="margin:5px; padding:10px;">📄 Gerar PDF</button>
+  </div>
+
+
+  <h2>Lançar Entrada</h2>
+  <select id="tipoEntrada">
+    <option value="Salário">Salário</option>
+    <option value="Vale Transporte">Vale Transporte</option>
+    <option value="Vale Alimentação">Vale Alimentação</option>
+    <option value="Vale Refeição">Vale Refeição</option>
+    <option value="Outros Empréstimos">Outros Empréstimos</option>
+    <option value="Bônus">Bônus</option>
+    <option value="Comissões">Comissões</option>
+    <option value="Venda de Produtos">Venda de Produtos</option>
+    <option value="Lucros">Lucros</option>
+    <option value="Reembolsos">Reembolsos</option>
+    <option value="Reembolsos Médicos">Reembolsos Médicos</option>
+    <option value="Indenizações">Indenizações</option>
+    <option value="13º">13º</option>
+    <option value="Férias">Férias</option>
+  </select>
+  <input type="text" id="descEntrada" placeholder="Descrição" />
+  <input type="number" id="valorEntrada" placeholder="Valor (R$)" />
+  <select id="statusEntrada">
+    <option value="Pago">Pago</option>
+    <option value="Não Pago">Não Pago</option>
+    <option value="Em Atraso">Em Atraso</option>
+  </select>
+  <button onclick="adicionarEntrada()">Adicionar Entrada</button>
+
+  <h2>Lançar Saída</h2>
+  <select id="tipoSaida">
+    <option value="Aluguel">Aluguel</option>
+    <option value="Água">Água</option>
+    <option value="Luz">Luz</option>
+    <option value="Internet">Internet</option>
+    <option value="Transporte">Transporte</option>
+    <option value="Saúde">Saúde</option>
+    <option value="Educação">Educação</option>
+    <option value="Cartão de Crédito">Cartão de Crédito</option>
+    <option value="Dívidas">Dívidas</option>
+    <option value="Empréstimos">Empréstimos</option>
+    <option value="Supermercado">Supermercado</option>
+    <option value="Vestuário">Vestuário</option>
+    <option value="Lazer">Lazer</option>
+    <option value="Assinaturas">Assinaturas</option>
+    <option value="Streaming">Streaming</option>
+    <option value="Seguros">Seguros</option>
+    <option value="Cursos">Cursos</option>
+    <option value="Fatura Celular">Fatura Celular</option>
+    <option value="Manutenção">Manutenção</option>
+    <option value="Condomínio">Condomínio</option>
+    <option value="Presentes">Presentes</option>
+    <option value="Doações">Doações</option>
+    <option value="Imprevistos">Imprevistos</option>
+  </select>
+  <input type="text" id="descSaida" placeholder="Descrição" />
+  <input type="number" id="valorSaida" placeholder="Valor (R$)" />
+  <select id="statusSaida">
+    <option value="Pago">Pago</option>
+    <option value="Não Pago">Não Pago</option>
+    <option value="Em Atraso">Em Atraso</option>
+  </select>
+  <button onclick="adicionarSaida()">Adicionar Saída</button>
+
+  <h2>Entradas</h2>
+  <div class="responsive-table">
+    <table id="tabelaEntradas">
+      <thead><tr><th>Tipo</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <h2>Saídas</h2>
+  <div class="responsive-table">
+    <table id="tabelaSaidas">
+      <thead><tr><th>Tipo</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <footer>
+    <p>&copy; 2025 Doutor da Informática - Todos os direitos reservados</p>
+    <p><a href="https://68024cc535c6b.site123.me/" target="_blank">Visite nosso site</a></p>
+  </footer>
+</div>
+
+<script>
+
+function checarUsuario() {
+  const nome = localStorage.getItem('usuario_nome');
+  const senha = localStorage.getItem('usuario_senha');
+  if (nome && senha) {
+    document.getElementById('cadastroContainer').style.display = 'none';
+    document.getElementById('loginContainer').style.display = 'block';
+    document.getElementById('erroLogin').style.display = 'none';
+  } else {
+    document.getElementById('cadastroContainer').style.display = 'block';
+    document.getElementById('loginContainer').style.display = 'none';
+  }
+}
+ {
+  const nome = localStorage.getItem('usuario_nome');
+  const senha = localStorage.getItem('usuario_senha');
+  if (nome && senha) {
+    document.getElementById('cadastroContainer').style.display = 'none';
+    document.getElementById('loginContainer').style.display = 'block';
+  }
+}
+
+// Função de cadastro
+function fazerCadastro() {
+  const nome = document.getElementById('nomeCadastro').value.trim();
+  const senha = document.getElementById('senhaCadastro').value.trim();
+  if (!nome || !senha) return alert("Preencha todos os campos.");
+  localStorage.setItem('usuario_nome', nome);
+  localStorage.setItem('usuario_senha', senha);
+  alert("Cadastro realizado com sucesso!");
+  document.getElementById('cadastroContainer').style.display = 'none';
+  document.getElementById('loginContainer').style.display = 'block';
+}
+
+// Função de login
+function fazerLogin() {
+  const senha = document.getElementById('senhaLogin').value.trim();
+  const senhaCadastrada = localStorage.getItem('usuario_senha');
+  if (senha === senhaCadastrada) {
+    document.getElementById('loginContainer').style.display = 'none';
+    document.getElementById('fluxoContainer').style.display = 'block';
+    document.getElementById('nomeUsuario').innerText = localStorage.getItem('usuario_nome');
+    atualizarDados();
+  } else {
+    document.getElementById('erroLogin').style.display = 'block'; // Apenas no login
+  }
+}
+
+// Função para atualizar os dados e o saldo
+let entradas = JSON.parse(localStorage.getItem('dr_00000_doutor_fluxo_entradas') || "[]");
+let saidas = JSON.parse(localStorage.getItem('dr_00000_doutor_fluxo_saidas') || "[]");
+
+function salvarDados() {
+  mostrarNotificacao('Entradas e saídas salvas com sucesso!');
+  localStorage.setItem('dr_00000_doutor_fluxo_entradas', JSON.stringify(entradas));
+  localStorage.setItem('dr_00000_doutor_fluxo_saidas', JSON.stringify(saidas));
+}
+
+function atualizarDados() {
+  const te = document.getElementById('tabelaEntradas').querySelector('tbody');
+  const ts = document.getElementById('tabelaSaidas').querySelector('tbody');
+  te.innerHTML = "";
+  ts.innerHTML = "";
+
+  let totalEntrada = 0;
+  let totalSaida = 0;
+
+  entradas.forEach(e => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${e.tipo}</td><td>${e.desc}</td><td>R$ ${e.valor.toFixed(2)}</td><td>${e.status}</td><td><button onclick="editarEntrada(${entradas.indexOf(e)})">Editar</button> <button onclick="duplicarEntrada(${entradas.indexOf(e)})">Duplicar</button> <button onclick="excluirEntrada(${entradas.indexOf(e)})">Excluir</button></td>`;
+    te.appendChild(tr);
+    if (e.status === "Pago") totalEntrada += e.valor;
+  });
+
+  saidas.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${s.tipo}</td><td>${s.desc}</td><td>R$ ${s.valor.toFixed(2)}</td><td>${s.status}</td><td><button onclick="editarSaida(${saidas.indexOf(s)})">Editar</button> <button onclick="duplicarSaida(${saidas.indexOf(s)})">Duplicar</button> <button onclick="excluirSaida(${saidas.indexOf(s)})">Excluir</button></td>`;
+    ts.appendChild(tr);
+    if (s.status === "Pago") totalSaida += s.valor;
+  });
+
+  document.getElementById('saldo').innerText = `Saldo: R$ ${(totalEntrada - totalSaida).toFixed(2)}`;
+}
+
+function adicionarEntrada() {
+  const tipo = document.getElementById('tipoEntrada').value;
+  const desc = document.getElementById('descEntrada').value;
+  const valor = parseFloat(document.getElementById('valorEntrada').value);
+  const status = document.getElementById('statusEntrada').value;
+  if (!desc || isNaN(valor)) return alert("Preencha os dados da entrada.");
+  entradas.push({ tipo, desc, valor, status });
+  salvarDados();
+  atualizarDados();
+}
+
+function adicionarSaida() {
+  const tipo = document.getElementById('tipoSaida').value;
+  const desc = document.getElementById('descSaida').value;
+  const valor = parseFloat(document.getElementById('valorSaida').value);
+  const status = document.getElementById('statusSaida').value;
+  if (!desc || isNaN(valor)) return alert("Preencha os dados da saída.");
+  saidas.push({ tipo, desc, valor, status });
+  salvarDados();
+  atualizarDados();
+}
+
+function editarEntrada(index) {
+  const entrada = entradas[index];
+  document.getElementById('tipoEntrada').value = entrada.tipo;
+  document.getElementById('descEntrada').value = entrada.desc;
+  document.getElementById('valorEntrada').value = entrada.valor;
+  document.getElementById('statusEntrada').value = entrada.status;
+  excluirEntrada(index);
+}
+
+function duplicarEntrada(index) {
+  const entrada = entradas[index];
+  entradas.push({ ...entrada });
+  salvarDados();
+  atualizarDados();
+}
+
+function excluirEntrada(index) {
+  entradas.splice(index, 1);
+  salvarDados();
+  atualizarDados();
+}
+
+function editarSaida(index) {
+  const saida = saidas[index];
+  document.getElementById('tipoSaida').value = saida.tipo;
+  document.getElementById('descSaida').value = saida.desc;
+  document.getElementById('valorSaida').value = saida.valor;
+  document.getElementById('statusSaida').value = saida.status;
+  excluirSaida(index);
+}
+
+function duplicarSaida(index) {
+  const saida = saidas[index];
+  saidas.push({ ...saida });
+  salvarDados();
+  atualizarDados();
+}
+
+function excluirSaida(index) {
+  saidas.splice(index, 1);
+  salvarDados();
+  atualizarDados();
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === "Enter") {
+    if (document.getElementById('cadastroContainer').style.display !== 'none') {
+      fazerCadastro();
+    }
+    if (document.getElementById('loginContainer').style.display !== 'none') {
+      fazerLogin();
+    }
+  }
+});
+
+
+function resetarDados() {
+  if (confirm("Tem certeza que deseja apagar todos os dados?")) {
+    localStorage.clear();
+    alert("Todos os dados foram apagados.");
+    location.reload();
+  }
+}
+
+function gerarPDF() {
+  window.print();
+}
+
+
+function mostrarNotificacao(msg = "Salvo com sucesso!") {
+  const notif = document.getElementById("notificacao");
+  notif.innerText = msg;
+  notif.style.display = "block";
+  setTimeout(() => { notif.style.display = "none"; }, 3000);
+}
+
+</script>
+
+</body>
+</html>
